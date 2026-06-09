@@ -1,1 +1,132 @@
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+import sqlite3
+from datetime import datetime
 
+app = Flask(__name__)
+DATABASE = 'game_peminat.db'
+
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS peminat (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nama TEXT NOT NULL,
+            umur INTEGER NOT NULL,
+            platform TEXT NOT NULL,
+            game_terfavorit TEXT NOT NULL,
+            frekuensi TEXT NOT NULL,
+            tanggal_registrasi TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Halaman utama
+@app.route('/')
+def index():
+    conn = get_db()
+    peminat = conn.execute('SELECT * FROM peminat ORDER BY tanggal_registrasi DESC').fetchall()
+    
+    platform_stats = {}
+    platforms = ['Mobile', 'PC', 'Console', 'Steam']
+    for platform in platforms:
+        count = conn.execute('SELECT COUNT(*) FROM peminat WHERE platform = ?', (platform,)).fetchone()[0]
+        platform_stats[platform] = count
+    
+    conn.close()
+    return render_template('index.html', peminat=peminat, platform_stats=platform_stats)
+
+# Tambah data
+@app.route('/add', methods=['GET', 'POST'])
+def add():
+    if request.method == 'POST':
+        nama = request.form['nama']
+        umur = int(request.form['umur'])
+        platform = request.form['platform']
+        game_terfavorit = request.form['game_terfavorit']
+        frekuensi = request.form['frekuensi']
+        
+        conn = get_db()
+        conn.execute(
+            'INSERT INTO peminat (nama, umur, platform, game_terfavorit, frekuensi) VALUES (?, ?, ?, ?, ?)',
+            (nama, umur, platform, game_terfavorit, frekuensi)
+        )
+        conn.commit()
+        conn.close()
+        return redirect(url_for('index'))
+    
+    return render_template('add.html')
+
+# Edit data
+@app.route('/edit/<int:id>', methods=['GET', 'POST'])
+def edit(id):
+    conn = get_db()
+    
+    if request.method == 'POST':
+        nama = request.form['nama']
+        umur = int(request.form['umur'])
+        platform = request.form['platform']
+        game_terfavorit = request.form['game_terfavorit']
+        frekuensi = request.form['frekuensi']
+        
+        conn.execute(
+            'UPDATE peminat SET nama=?, umur=?, platform=?, game_terfavorit=?, frekuensi=? WHERE id=?',
+            (nama, umur, platform, game_terfavorit, frekuensi, id)
+        )
+        conn.commit()
+        conn.close()
+        return redirect(url_for('index'))
+    
+    peminat = conn.execute('SELECT * FROM peminat WHERE id = ?', (id,)).fetchone()
+    conn.close()
+    return render_template('edit.html', peminat=peminat)
+
+# Hapus data
+@app.route('/delete/<int:id>')
+def delete(id):
+    conn = get_db()
+    conn.execute('DELETE FROM peminat WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
+
+# Report per platform
+@app.route('/report')
+def report():
+    conn = get_db()
+    
+    platforms = ['Mobile', 'PC', 'Console', 'Steam']
+    report_data = {}
+    
+    for platform in platforms:
+        peminat = conn.execute('SELECT * FROM peminat WHERE platform = ?', (platform,)).fetchall()
+        report_data[platform] = {
+            'peminat': peminat,
+            'total': len(peminat)
+        }
+    
+    conn.close()
+    return render_template('report.html', report_data=report_data)
+
+# API untuk chart
+@app.route('/api/platform-stats')
+def api_platform_stats():
+    conn = get_db()
+    platforms = ['Mobile', 'PC', 'Console', 'Steam']
+    stats = []
+    
+    for platform in platforms:
+        count = conn.execute('SELECT COUNT(*) FROM peminat WHERE platform = ?', (platform,)).fetchone()[0]
+        stats.append({'platform': platform, 'total': count})
+    
+    conn.close()
+    return jsonify(stats)
+
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True, host='0.0.0.0', port=5000)
