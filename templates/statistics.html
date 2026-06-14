@@ -1,0 +1,80 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <div class="stat-header">
+    <h2>📊 Statistik Peminat Game Online</h2>
+    <a href="/" class="btn-secondary">← Kembali ke Dashboard</a>
+  </div>
+
+  <section class="stat-cards">
+    <div class="stat-card">
+      <div class="stat-icon">🎮</div>
+      <div class="stat-label">Total Game</div>
+      <div class="stat-value">{{ total_games }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-label">Total Peminat (Ribu)</div>
+      <div class="stat-value">{{ '{:,}'.format(total_peminat) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-label">Rating Rata-rata</div>
+      <div class="stat-value">{{ '%.2f'|format(avg_rating) }}</div>
+    </div>
+  </section>
+
+  <section class="stat-section">
+    <h3>🏆 Top 5 Game Paling Populer</h3>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Ranking</th>
+          <th>Nama Game</th>
+          <th>Platform</th>
+          <th>Jumlah Peminat (Ribu)</th>
+          <th>Rating</th>
+          <th>Genre</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for game in top_games %}
+          <tr>
+            <td style="text-align:center; font-weight:bold">{{ loop.index }}</td>
+            <td>{{ game.name }}</td>
+            <td><span class="badge">{{ game.platform }}</span></td>
+            <td style="text-align:right">{{ '{:,}'.format(game.peminat_ribu) }}</td>
+            <td style="text-align:center">{{ '%.1f'|format(game.rating) }}⭐</td>
+            <td>{{ game.genre }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="stat-section">
+    <h3>📈 Statistik Per Platform</h3>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Platform</th>
+          <th>Jumlah Game</th>
+          <th>Total Peminat (Ribu)</th>
+          <th>Rating Rata-rata</th>
+          <th>Peminat Per Game</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stat in platform_stats %}
+          <tr>
+            <td><span class="badge">{{ stat.platform }}</span></td>
+            <td style="text-align:center">{{ stat.count }}</td>
+            <td style="text-align:right">{{ '{:,}'.format(stat.total_peminat or 0) }}</td>
+            <td style="text-align:center">{{ '%.2f'|format(stat.avg_rating or 0) }}</td>
+            <td style="text-align:right">{{ '{:,.0f}'.format((stat.total_peminat or 0) / (stat.count or 1)) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+{% endblock %}
