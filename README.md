@@ -1,1 +1,0 @@
-# Pengelolaan-Data-Peminat-Game-Online-Berdasarkan-Platfrom-Digital
